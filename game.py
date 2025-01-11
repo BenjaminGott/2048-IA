@@ -19,6 +19,7 @@ BACKROUND_COLOR = (205, 192, 180)
 FONT_COLOR = (199, 110, 101)
 
 FONT = pygame.font.SysFont("comicsans", 60, bold=True)
+SCORE_FONT = pygame.font.SysFont("comicsans", 40, bold=True)
 MOVE_VEL = 20
 
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -46,7 +47,7 @@ class Tile:
         self.y = row * RECT_HEIGHT
 
     def get_color(self):
-        color_index = int(math.log2(self.value))
+        color_index = int(math.log2(self.value)) - 1
         color = self.COLORS[color_index]
         return color
 
@@ -88,18 +89,23 @@ def draw_grid(window):
     pygame.draw.rect(window, OUTLINE_COLOR, (0, 0, WIDTH, HEIGHT), OUTLINE_THICKNESS)
 
 
-def draw(window, tiles):
+def draw(window, tiles, score):
     window.fill(BACKROUND_COLOR)
 
+    # Affichage des tuiles
     for tile in tiles.values():
         tile.draw(window)
 
     draw_grid(window)
 
+    # Affichage du score par-dessus les autres éléments
+    score_text = SCORE_FONT.render(f"Score: {score}", 1, (0,0,0))
+    window.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, 20))
+
     pygame.display.update()
 
 
-def get_radom_pos(tiles):
+def get_random_pos(tiles):
     row = None
     col = None
     while True:
@@ -112,9 +118,10 @@ def get_radom_pos(tiles):
     return row, col
 
 
-def move_tiles(window, tiles, clock, direction):
+def move_tiles(window, tiles, clock, direction, score):
     updated = True
     blocks = set()
+    
     if direction == "left":
         sort_func = lambda x: x.col
         reverse = False
@@ -130,11 +137,11 @@ def move_tiles(window, tiles, clock, direction):
         sort_func = lambda x: x.col
         reverse = True
         delta = (MOVE_VEL, 0)
-        boundary_check = lambda tile: tile.col == COLS -1
+        boundary_check = lambda tile: tile.col == COLS - 1
         get_next_tile = lambda tile: tiles.get(f"{tile.row}{tile.col+1}")
         merge_check = lambda tile, next_tile: tile.x < next_tile.x - MOVE_VEL
         move_check = (
-            lambda tile, next_tile: tile.x +RECT_WIDTH + MOVE_VEL < next_tile.x
+            lambda tile, next_tile: tile.x + RECT_WIDTH + MOVE_VEL < next_tile.x
         )
         ceil = False
     elif direction == "up":
@@ -152,11 +159,11 @@ def move_tiles(window, tiles, clock, direction):
         sort_func = lambda x: x.row
         reverse = True
         delta = (0, MOVE_VEL)
-        boundary_check = lambda tile: tile.row == ROWS-1
+        boundary_check = lambda tile: tile.row == ROWS - 1
         get_next_tile = lambda tile: tiles.get(f"{tile.row+1}{tile.col}")
         merge_check = lambda tile, next_tile: tile.y < next_tile.y - MOVE_VEL
         move_check = (
-            lambda tile, next_tile: tile.y +RECT_WIDTH + MOVE_VEL < next_tile.y 
+            lambda tile, next_tile: tile.y + RECT_WIDTH + MOVE_VEL < next_tile.y
         )
         ceil = False
 
@@ -180,6 +187,7 @@ def move_tiles(window, tiles, clock, direction):
                 if merge_check(tile, next_tile):
                     tile.move(delta)
                 else:
+                    score += next_tile.value
                     next_tile.value *= 2
                     sorted_tiles.pop(i)
                     blocks.add(next_tile)
@@ -189,35 +197,62 @@ def move_tiles(window, tiles, clock, direction):
                 continue
             tile.set_pos(ceil)
             updated = True
-            
-        update_tiles(window,tiles,sorted_tiles)
-    end_move(tiles)
+        
+        update_tiles(window, tiles, sorted_tiles, score)
+        
+    reponse = end_move(tiles)
+    if reponse == "lost":
+        return "lost", score
+
+    return "continue", score
+
 
 def end_move(tiles):
-    if len(tiles)==16 : 
-        return "lost"
-    row , col = get_radom_pos(tiles)
-    tiles[f"{row}{col}"] = Tile(random.choice([2,4]) , row,col)
-    return "continue"
     
+    if len(tiles) == 16:
+        # Vérifie si des mouvements sont encore possibles
+        for tile in tiles.values():
+            for delta_row, delta_col in [(0, 1), (1, 0)]:
+                neighbor = tiles.get(f"{tile.row + delta_row}{tile.col + delta_col}")
+                if neighbor and neighbor.value == tile.value:
+                    return "continue"
+          
+        return "lost"  # Aucun mouvement possible, le jeu est perdu
 
-def update_tiles(window,tiles,sorted_tiles) : 
-    tiles.clear()
-    for tile in sorted_tiles : 
-        tiles[f"{tile.row}{tile.col}"] = tile
+    # Ajout d'une nouvelle tuile si le plateau n'est pas plein
+    row, col = get_random_pos(tiles)
+    tiles[f"{row}{col}"] = Tile(random.choice([2, 4]), row, col)
+    return "continue"
+
+
+def update_tiles(window, tiles, sorted_tiles, score):
+    # Remplir les tiles mises à jour sans réinitialiser complètement
     
-    draw(window,tiles)
+        
+    updated_tiles = {}
+    for tile in sorted_tiles:
+        updated_tiles[f"{tile.row}{tile.col}"] = tile
+
+    tiles.clear()
+    tiles.update(updated_tiles)
+
+    # Conserver le score et redessiner
+    draw(window, tiles, score)
+
+
 
 def generate_titles():
     tiles = {}
     for _ in range(2):
-        row, col = get_radom_pos(tiles)
+        row, col = get_random_pos(tiles)
         tiles[f"{row}{col}"] = Tile(2, row, col)
 
     return tiles
 
 
 def game(window):
+    reponse = ""
+    score = 0
     clock = pygame.time.Clock()
     run = True
 
@@ -228,20 +263,24 @@ def game(window):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-                break
-            if event.type == pygame.KEYDOWN : 
-                if event.key == pygame.K_LEFT : 
-                    move_tiles(window,tiles,clock,"left")
-                if event.key == pygame.K_RIGHT : 
-                    move_tiles(window,tiles,clock,"right")
-                if event.key == pygame.K_UP : 
-                    move_tiles(window,tiles,clock,"up")
-                if event.key == pygame.K_DOWN : 
-                    move_tiles(window,tiles,clock,"down")
-            
-        draw(window, tiles)
+                return "lost", 0
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    reponse, score = move_tiles(window, tiles, clock, "left", score)
+                if event.key == pygame.K_RIGHT:
+                    reponse, score = move_tiles(window, tiles, clock, "right", score)
+                if event.key == pygame.K_UP:
+                    reponse, score = move_tiles(window, tiles, clock, "up", score)
+                if event.key == pygame.K_DOWN:
+                    reponse, score = move_tiles(window, tiles, clock, "down", score)
+                if reponse == "lost":
+                    
+                    return "lost" , score
+        draw(window, tiles, score)
     pygame.quit()
 
 
 def start_game():
-    game(WINDOW)
+    return game(WINDOW)
+
+

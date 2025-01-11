@@ -255,6 +255,7 @@ def generate_titles():
 
 def game(window):
     reponse = ""
+    game_value.score=0
     
     clock = pygame.time.Clock()
     run = True

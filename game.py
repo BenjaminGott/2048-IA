@@ -200,7 +200,6 @@ def move_tiles(window, tiles, clock, direction, score):
         
         update_tiles(window, tiles, sorted_tiles, score)
         
-    print(tiles)
     reponse = end_move(tiles)
     if reponse == "lost":
         return "lost", score
@@ -209,10 +208,19 @@ def move_tiles(window, tiles, clock, direction, score):
 
 
 def end_move(tiles):
+    
     if len(tiles) == 16:
-        return "lost"
+        # Vérifie si des mouvements sont encore possibles
+        for tile in tiles.values():
+            for delta_row, delta_col in [(0, 1), (1, 0)]:
+                neighbor = tiles.get(f"{tile.row + delta_row}{tile.col + delta_col}")
+                if neighbor and neighbor.value == tile.value:
+                    return "continue"
+          
+        return "lost"  # Aucun mouvement possible, le jeu est perdu
+
+    # Ajout d'une nouvelle tuile si le plateau n'est pas plein
     row, col = get_random_pos(tiles)
-    print("len : ",len(tiles))
     tiles[f"{row}{col}"] = Tile(random.choice([2, 4]), row, col)
     return "continue"
 
@@ -266,6 +274,7 @@ def game(window):
                 if event.key == pygame.K_DOWN:
                     reponse, score = move_tiles(window, tiles, clock, "down", score)
                 if reponse == "lost":
+                    
                     return "lost" , score
         draw(window, tiles, score)
     pygame.quit()
@@ -274,4 +283,4 @@ def game(window):
 def start_game():
     return game(WINDOW)
 
-start_game()
+

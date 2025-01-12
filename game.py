@@ -1,7 +1,6 @@
 import pygame
 import random
 import math
-import game_value
 
 pygame.init()
 
@@ -28,6 +27,9 @@ MOVE_VEL = 20
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("2048")
 
+class Game_value : 
+    def __init__(self):
+        self.score = 0
 
 class Tile:
     COLORS = [
@@ -120,7 +122,7 @@ def draw_grid(window):
     pygame.draw.rect(window, OUTLINE_COLOR, (0, 0, WIDTH, HEIGHT), OUTLINE_THICKNESS)
 
 
-def draw(window, tiles):
+def draw(window, tiles, game_value):
     """
     Draws the entire game, including the background, grid, tiles, and score.
 
@@ -165,7 +167,7 @@ def get_random_pos(tiles):
     return row, col
 
 
-def move_tiles(window, tiles, clock, direction):
+def move_tiles(window, tiles, clock, direction,game_value):
     """
     Handles the movement and merging of tiles in the specified direction.
 
@@ -257,7 +259,7 @@ def move_tiles(window, tiles, clock, direction):
             tile.set_pos(ceil)
             updated = True
 
-        update_tiles(window, tiles, sorted_tiles)
+        update_tiles(window, tiles, sorted_tiles,game_value)
 
     reponse = end_move(tiles)
     if reponse == "lost":
@@ -290,7 +292,7 @@ def end_move(tiles):
     return "continue"
 
 
-def update_tiles(window, tiles, sorted_tiles):
+def update_tiles(window, tiles, sorted_tiles,game_value):
     """
     Updates the tiles dictionary with the current positions and redraws the game.
 
@@ -307,7 +309,7 @@ def update_tiles(window, tiles, sorted_tiles):
     tiles.clear()
     tiles.update(updated_tiles)
 
-    draw(window, tiles)
+    draw(window, tiles,game_value)
 
 
 def generate_titles():
@@ -325,7 +327,7 @@ def generate_titles():
     return tiles
 
 
-def game(window):
+def game(window,game_value):
     """
     Runs the main game loop, handling user input and game logic.
 
@@ -351,25 +353,25 @@ def game(window):
                 return "lost", 0
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
-                    reponse = move_tiles(window, tiles, clock, "left")
+                    reponse = move_tiles(window, tiles, clock, "left",game_value)
                 if event.key == pygame.K_RIGHT:
-                    reponse = move_tiles(window, tiles, clock, "right")
+                    reponse = move_tiles(window, tiles, clock, "right",game_value)
                 if event.key == pygame.K_UP:
-                    reponse = move_tiles(window, tiles, clock, "up")
+                    reponse = move_tiles(window, tiles, clock, "up",game_value)
                 if event.key == pygame.K_DOWN:
-                    reponse = move_tiles(window, tiles, clock, "down")
+                    reponse = move_tiles(window, tiles, clock, "down",game_value)
                 if reponse == "lost":
 
                     return "lost"
-        draw(window, tiles)
+        draw(window, tiles,game_value)
     pygame.quit()
 
 
-def start_game():
+def start_game(game_value):
     """
     Starts the game by initializing the game window and running the main loop.
 
     Returns:
         tuple: The result of the game function (e.g., game state and score).
     """
-    return game(WINDOW)
+    return game(WINDOW,game_value)

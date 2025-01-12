@@ -1,6 +1,7 @@
 import game
-import game_value
 
 if __name__ == "__main__":
-    state = game.start_game()
-    print(f"Score : {game_value.score}")
+    n = game.Game_value()
+    state = game.start_game(n)
+    
+    print(f"Score : {n.score}")

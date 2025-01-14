@@ -4,7 +4,7 @@ import math
 
 pygame.init()
 
-FPS = 1000
+FPS = 200
 
 WIDTH, HEIGHT = 800, 800
 ROWS = 4
@@ -30,6 +30,8 @@ pygame.display.set_caption("2048")
 class Game_value : 
     def __init__(self):
         self.score = 0
+        self.tabOfInfo = []
+        # [(value,row,col),(value,row,col)]
 
 class Tile:
     COLORS = [
@@ -44,13 +46,18 @@ class Tile:
         (236, 202, 80),
     ]
 
+
     def __init__(self, value, row, col):
         self.value = value
         self.row = row
         self.col = col
         self.x = col * RECT_WIDTH
         self.y = row * RECT_HEIGHT
-
+        
+    def get_info(self) :
+        return self.value,self.row,self.col
+    
+    
     def get_color(self):
         """
         Returns:
@@ -167,7 +174,7 @@ def get_random_pos(tiles):
     return row, col
 
 
-def move_tiles(window, tiles, clock, direction,game_value):
+def move_tiles(window, tiles, clock, direction, game_value):
     """
     Handles the movement and merging of tiles in the specified direction.
 
@@ -176,6 +183,7 @@ def move_tiles(window, tiles, clock, direction,game_value):
         tiles (dict): A dictionary of all tiles on the board.
         clock (pygame.time.Clock): The game clock to control the frame rate.
         direction (str): The direction of movement ("left", "right", "up", "down").
+        game_value (Game_value): The object containing game-related information.
 
     Returns:
         str: "continue" if the game continues, or "lost" if the game is over.
@@ -183,6 +191,7 @@ def move_tiles(window, tiles, clock, direction,game_value):
     updated = True
     blocks = set()
 
+    # Détermine les paramètres en fonction de la direction
     if direction == "left":
         sort_func = lambda x: x.col
         reverse = False
@@ -190,9 +199,7 @@ def move_tiles(window, tiles, clock, direction,game_value):
         boundary_check = lambda tile: tile.col == 0
         get_next_tile = lambda tile: tiles.get(f"{tile.row}{tile.col-1}")
         merge_check = lambda tile, next_tile: tile.x > next_tile.x + MOVE_VEL
-        move_check = (
-            lambda tile, next_tile: tile.x > next_tile.x + RECT_WIDTH + MOVE_VEL
-        )
+        move_check = lambda tile, next_tile: tile.x > next_tile.x + RECT_WIDTH + MOVE_VEL
         ceil = True
     elif direction == "right":
         sort_func = lambda x: x.col
@@ -201,9 +208,7 @@ def move_tiles(window, tiles, clock, direction,game_value):
         boundary_check = lambda tile: tile.col == COLS - 1
         get_next_tile = lambda tile: tiles.get(f"{tile.row}{tile.col+1}")
         merge_check = lambda tile, next_tile: tile.x < next_tile.x - MOVE_VEL
-        move_check = (
-            lambda tile, next_tile: tile.x + RECT_WIDTH + MOVE_VEL < next_tile.x
-        )
+        move_check = lambda tile, next_tile: tile.x + RECT_WIDTH + MOVE_VEL < next_tile.x
         ceil = False
     elif direction == "up":
         sort_func = lambda x: x.row
@@ -212,9 +217,7 @@ def move_tiles(window, tiles, clock, direction,game_value):
         boundary_check = lambda tile: tile.row == 0
         get_next_tile = lambda tile: tiles.get(f"{tile.row-1}{tile.col}")
         merge_check = lambda tile, next_tile: tile.y > next_tile.y + MOVE_VEL
-        move_check = (
-            lambda tile, next_tile: tile.y > next_tile.y + RECT_WIDTH + MOVE_VEL
-        )
+        move_check = lambda tile, next_tile: tile.y > next_tile.y + RECT_WIDTH + MOVE_VEL
         ceil = True
     elif direction == "down":
         sort_func = lambda x: x.row
@@ -223,9 +226,7 @@ def move_tiles(window, tiles, clock, direction,game_value):
         boundary_check = lambda tile: tile.row == ROWS - 1
         get_next_tile = lambda tile: tiles.get(f"{tile.row+1}{tile.col}")
         merge_check = lambda tile, next_tile: tile.y < next_tile.y - MOVE_VEL
-        move_check = (
-            lambda tile, next_tile: tile.y + RECT_WIDTH + MOVE_VEL < next_tile.y
-        )
+        move_check = lambda tile, next_tile: tile.y + RECT_WIDTH + MOVE_VEL < next_tile.y
         ceil = False
 
     while updated:
@@ -240,11 +241,7 @@ def move_tiles(window, tiles, clock, direction,game_value):
             next_tile = get_next_tile(tile)
             if not next_tile:
                 tile.move(delta)
-            elif (
-                tile.value == next_tile.value
-                and tile not in blocks
-                and next_tile not in blocks
-            ):
+            elif tile.value == next_tile.value and tile not in blocks and next_tile not in blocks:
                 if merge_check(tile, next_tile):
                     tile.move(delta)
                 else:
@@ -259,26 +256,27 @@ def move_tiles(window, tiles, clock, direction,game_value):
             tile.set_pos(ceil)
             updated = True
 
-        update_tiles(window, tiles, sorted_tiles,game_value)
+        update_tiles(window, tiles, sorted_tiles, game_value)
 
-    reponse = end_move(tiles)
+    # Passe game_value pour inclure les nouvelles tuiles dans tabOfInfo
+    reponse = end_move(tiles, game_value)
     if reponse == "lost":
         return "lost"
 
     return "continue"
 
-
-def end_move(tiles):
+def end_move(tiles, game_value):
     """
-    Checks if the game should continue or end after a move.
+    Checks if the game should continue or end after a move and generates a new tile if possible.
 
     Args:
         tiles (dict): A dictionary of all tiles on the board.
+        game_value (Game_value): The object containing game-related information.
 
     Returns:
         str: "continue" if the game continues, or "lost" if no moves are possible.
     """
-    if len(tiles) == 16:
+    if len(tiles) == 16:  # Vérifie si la grille est pleine
         for tile in tiles.values():
             for delta_row, delta_col in [(0, 1), (1, 0)]:
                 neighbor = tiles.get(f"{tile.row + delta_row}{tile.col + delta_col}")
@@ -287,8 +285,12 @@ def end_move(tiles):
 
         return "lost"
 
+    # Génère une nouvelle tuile
     row, col = get_random_pos(tiles)
     tiles[f"{row}{col}"] = Tile(random.choice([2, 4]), row, col)
+
+    # Met à jour tabOfInfo immédiatement après la génération de la nouvelle tuile
+    game_value.tabOfInfo = [tile.get_info() for tile in tiles.values()]
     return "continue"
 
 
@@ -303,8 +305,11 @@ def update_tiles(window, tiles, sorted_tiles,game_value):
     """
 
     updated_tiles = {}
+
+    game_value.tabOfInfo = []  
     for tile in sorted_tiles:
         updated_tiles[f"{tile.row}{tile.col}"] = tile
+        game_value.tabOfInfo.append(tile.get_info())
 
     tiles.clear()
     tiles.update(updated_tiles)
@@ -364,6 +369,8 @@ def game(window,game_value):
 
                     return "lost"
         draw(window, tiles,game_value)
+        
+
     pygame.quit()
 
 

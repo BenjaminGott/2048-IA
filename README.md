@@ -57,3 +57,6 @@
 
 2. **Messages d'erreur sporadiques :**
     - Parfois, des messages de crash peuvent s'afficher. Ces derniers peuvent généralement être ignorés sans impacter l'expérience utilisateur.
+
+3.**Les performances**
+ - Pour réduire les performances et la demande en ressources, vous pouvez réduire les FPS dans le fichier de jeu de votre choix.

@@ -247,6 +247,8 @@ def move_tiles(window, tiles, clock, direction, game_value):
                 else:
                     game_value.score += next_tile.value
                     next_tile.value *= 2
+                    if next_tile.value==2048 : 
+                        return "lost"
                     sorted_tiles.pop(i)
                     blocks.add(next_tile)
             elif move_check(tile, next_tile):

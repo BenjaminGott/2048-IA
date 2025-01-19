@@ -5,7 +5,7 @@ from model import generate_population, generate_random_individual
 
 pygame.init()
 
-FPS = 60
+FPS = 200
 
 WIDTH, HEIGHT = 800, 800
 ROWS = 4
@@ -379,11 +379,12 @@ def play_individu(individu, game_value, window):
     '''L'IA fait bouger les blocs de façon aléatoire au début'''
     game_value.score = 0
     clock = pygame.time.Clock()
-    tiles = generate_titles()  
-    for move in individu:
-       
+    tiles = generate_titles()
+    i = 0  
+    while i < len(individu):  # Continue jusqu'à ce que tous les mouvements soient joués
+        move = individu[i]
         print(f"Move: {move}, Score: {game_value.score}")
-        
+
         if move == "left":
             reponse = move_tiles(window, tiles, clock, "left", game_value)
         elif move == "right":
@@ -392,12 +393,18 @@ def play_individu(individu, game_value, window):
             reponse = move_tiles(window, tiles, clock, "up", game_value)
         elif move == "down":
             reponse = move_tiles(window, tiles, clock, "down", game_value)
-        draw(window, tiles, game_value)    
+
+        draw(window, tiles, game_value)
+
         if reponse == "lost":
             print(f"Lost at move: {move}, Final Score: {game_value.score}")
-            return game_value.score  
+            return game_value.score  # Retourner le score final si le jeu est perdu
 
-    return game_value.score  
+        i += 1  
+
+    return game_value.score  # Retourner le score final sauf si perdu
+
+
 
 
 
@@ -456,7 +463,7 @@ def algorithme_genetique(game_value, window, generations=50, population_size=100
         # Mutation
         population = mutate(population, mutation_rate)
 
-    print("Entraînement ")
+
 
 
 

@@ -1,10 +1,11 @@
 import pygame
 import random
 import math
+from montecarlo import montecarlo
 
 pygame.init()
 
-FPS = 200
+FPS = 500
 
 WIDTH, HEIGHT = 800, 800
 ROWS = 4
@@ -352,25 +353,26 @@ def game(window,game_value):
 
     while run:
         clock.tick(FPS)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-                return "lost", 0
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    reponse = move_tiles(window, tiles, clock, "left",game_value)
-                if event.key == pygame.K_RIGHT:
-                    reponse = move_tiles(window, tiles, clock, "right",game_value)
-                if event.key == pygame.K_UP:
-                    reponse = move_tiles(window, tiles, clock, "up",game_value)
-                if event.key == pygame.K_DOWN:
-                    reponse = move_tiles(window, tiles, clock, "down",game_value)
-                if reponse == "lost":
+        direction = testmontecarlo(window, tiles, clock, game_value)
+        reponse = move_tiles(window, tiles, clock, direction, game_value)
+        # for event in pygame.event.get():
+        #     if event.type == pygame.QUIT:
+        #         run = False
+        #         return "lost", 0
+        #     if event.type == pygame.KEYDOWN:
+        #         # if event.key == pygame.K_LEFT:
+        #         #     reponse = move_tiles(window, tiles, clock, "left",game_value)
+        #         # if event.key == pygame.K_RIGHT:
+        #         #     reponse = move_tiles(window, tiles, clock, "right",game_value)
+        #         # if event.key == pygame.K_UP:
+        #         #     reponse = move_tiles(window, tiles, clock, "up",game_value)
+        #         # if event.key == pygame.K_DOWN:
+        #         #     reponse = move_tiles(window, tiles, clock, "down",game_value)
+        #         # if reponse == "lost":
 
-                    return "lost"
-        draw(window, tiles,game_value)
-        
-
+        #         #     return "lost"
+        draw(window, tiles, game_value)
+        print(f"Score actuelle : {game_value.score}, direction choisie : {direction}")
     pygame.quit()
 
 
@@ -382,3 +384,59 @@ def start_game(game_value):
         tuple: The result of the game function (e.g., game state and score).
     """
     return game(WINDOW,game_value)
+
+def testmontecarlo(window, tiles, clock, game_value):
+    """
+    Utilise l'algorithme Monte Carlo pour déterminer la meilleure direction de mouvement.
+
+    Args:
+        window (pygame.Surface): Fenêtre du jeu (nécessaire pour certains appels de simulation).
+        tiles (dict): Dictionnaire contenant les tuiles actuelles du plateau.
+        clock (pygame.time.Clock): Horloge pour gérer le framerate.
+        game_value (Game_value): État actuel du jeu.
+
+    Returns:
+        str: La meilleure direction ("left", "right", "up", "down").
+    """
+    directions = ["left", "right", "up", "down"]  # Actions possibles
+    nb_simulations = 2  # Nombre de simulations par direction
+    best_direction = None
+    max_average_score = float('-inf')  # Initialise à une valeur très basse
+
+    for direction in directions:
+        total_score = 0
+        simulations_valides = 0
+
+        for _ in range(nb_simulations):
+            # Copie indépendante des tuiles et de l'état du jeu
+            simulated_tiles = {key: Tile(tile.value, tile.row, tile.col) for key, tile in tiles.items()}
+            simulated_game = Game_value()
+            simulated_game.tabOfInfo = [tile.get_info() for tile in simulated_tiles.values()]
+            simulated_game.score = game_value.score
+            
+            # Applique le mouvement initial dans la direction donnée
+            reponse = move_tiles(window, simulated_tiles, clock, direction, simulated_game)
+            if reponse == "lost":
+                continue  # Ignore les simulations où le premier mouvement est invalide
+
+            # Continue avec des mouvements aléatoires jusqu'à la fin du jeu
+            while reponse != "lost":
+                random_direction = random.choice(directions)
+                reponse = move_tiles(window, simulated_tiles, clock, random_direction, simulated_game)
+
+            # Ajoute le score final de cette simulation
+            total_score += simulated_game.score
+            simulations_valides += 1
+
+        # Calcule le score moyen pour cette direction
+        if simulations_valides > 0:
+            average_score = total_score / simulations_valides
+        else:
+            average_score = float('-inf')  # Mouvement initial impossible
+
+        # Met à jour la meilleure direction si nécessaire
+        if average_score > max_average_score:
+            max_average_score = average_score
+            best_direction = direction
+
+    return best_direction

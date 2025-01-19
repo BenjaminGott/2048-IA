@@ -2,6 +2,7 @@ import pygame
 import random
 import math
 from model import generate_population, generate_random_individual
+from sauvegarde import load_pop, save_pop
 
 pygame.init()
 
@@ -405,9 +406,6 @@ def play_individu(individu, game_value, window):
     return game_value.score  # Retourner le score final sauf si perdu
 
 
-
-
-
 def eval_pop(population, game_value, window):
     scores = []
     for individu in population:
@@ -417,13 +415,12 @@ def eval_pop(population, game_value, window):
 
 
 def selection(population, scores, num_parents):
-    """ meilleurs individus selon leurs scores."""
+    """meilleurs individus selon leurs scores."""
     sorted_population = [individu for _, individu in sorted(zip(scores, population), reverse=True)]
     return sorted_population[:num_parents]
 
-
 def crossover(parents, population_size):
-    """   Produit une nouvelle generation en combinant deux parents"""
+    """nouvelle génération en combinant deux parents."""
     new_population = []
     while len(new_population) < population_size:
         parent1 = random.choice(parents)
@@ -443,25 +440,38 @@ def mutate(population, mutation_rate):
     return population
 
 
-def algorithme_genetique(game_value, window, generations=50, population_size=100, mutation_rate=0.1, num_parents=10):
-    """algho genetique """
-    population = generate_population(population_size)
+def algorithme_genetique(game_value, window, generations=50, population_size=100, mutation_rate=0.1, num_parents=10, resume_from_saved=True):
+    """Algorithme génétique pour entraîner l'IA."""
+    
+    if resume_from_saved:
+        population, starting_generation = load_pop("pop.json")
+        if not population:
+            population = generate_population(population_size)  
+        generation = starting_generation
+    else:
+        population = generate_population(population_size)
+        generation = 0
 
-    for generation in range(generations):
-        print(f"=== Génération {generation} ===")
+    for generation in range(generation, generations):
+        print(f"=== Génération {generation + 1} ===")
         
-        # eval
         scores = eval_pop(population, game_value, window)
         print(f"Meilleur score de cette génération : {max(scores)}")
         
-        # meilleurs individu
+        # Sélection des meilleurs individus 
         parents = selection(population, scores, num_parents)
         
-        # Croisement
+        # Croisement 
         population = crossover(parents, population_size)
         
-        # Mutation
+        # mutation
         population = mutate(population, mutation_rate)
+
+        # Sauvegarde de la population 
+        save_pop(population, generation + 1)
+
+    
+
 
 
 

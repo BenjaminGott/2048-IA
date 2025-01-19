@@ -48,3 +48,12 @@
     @Yukojuni
     @lamynoah
 
+
+
+## Défauts / Problèmes rencontrés
+
+1. **Manque de temps :**
+    - Limitation dans le développement, empêchant la création de plusieurs générations et l'amélioration de l'IA.
+
+2. **Messages d'erreur sporadiques :**
+    - Parfois, des messages de crash peuvent s'afficher. Ces derniers peuvent généralement être ignorés sans impacter l'expérience utilisateur.

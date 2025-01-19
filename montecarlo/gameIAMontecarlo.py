@@ -1,9 +1,9 @@
 import pygame
 import random
 import math
-from montecarlo import montecarlo
-from model import generate_population, generate_random_individual
-from sauvegarde import load_pop, save_pop
+from montecarlo.montecarlo import montecarlo
+from genetiques.model import generate_population, generate_random_individual
+from genetiques.sauvegarde import load_pop, save_pop
 
 
 pygame.init()
@@ -563,5 +563,4 @@ def testmontecarlo(window, tiles, clock, game_value):
     else:
         print("Choix invalide.")
         return None
-
 

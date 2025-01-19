@@ -377,7 +377,7 @@ def game(window,game_value):
     
 def play_individu(individu, game_value, window):
     '''L'IA fait bouger les blocs de façon aléatoire au début'''
-
+    game_value.score = 0
     clock = pygame.time.Clock()
     tiles = generate_titles()  
     for move in individu:
@@ -443,11 +443,11 @@ def algorithme_genetique(game_value, window, generations=50, population_size=100
     for generation in range(generations):
         print(f"=== Génération {generation} ===")
         
-        # Évaluation
+        # eval
         scores = eval_pop(population, game_value, window)
         print(f"Meilleur score de cette génération : {max(scores)}")
         
-        # Sélection des meilleurs individus
+        # meilleurs individu
         parents = selection(population, scores, num_parents)
         
         # Croisement

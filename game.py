@@ -5,7 +5,7 @@ from montecarlo import montecarlo
 
 pygame.init()
 
-FPS = 500
+FPS = 2000
 
 WIDTH, HEIGHT = 800, 800
 ROWS = 4
@@ -381,7 +381,7 @@ def start_game(game_value):
     Starts the game by initializing the game window and running the main loop.
 
     Returns:
-        tuple: The result of the game function (e.g., game state and score).
+        tuple: The result of the gadme function (e.g., game state and score).
     """
     return game(WINDOW,game_value)
 
@@ -399,7 +399,7 @@ def testmontecarlo(window, tiles, clock, game_value):
         str: La meilleure direction ("left", "right", "up", "down").
     """
     directions = ["left", "right", "up", "down"]  # Actions possibles
-    nb_simulations = 2  # Nombre de simulations par direction
+    nb_simulations = 1  # Nombre de simulations par direction
     best_direction = None
     max_average_score = float('-inf')  # Initialise à une valeur très basse
 

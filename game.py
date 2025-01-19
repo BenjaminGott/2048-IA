@@ -2,6 +2,9 @@ import pygame
 import random
 import math
 from montecarlo import montecarlo
+from model import generate_population, generate_random_individual
+from sauvegarde import load_pop, save_pop
+
 
 pygame.init()
 
@@ -374,6 +377,113 @@ def game(window,game_value):
         draw(window, tiles, game_value)
         print(f"Score actuelle : {game_value.score}, direction choisie : {direction}")
     pygame.quit()
+    
+    
+def play_individu(individu, game_value, window):
+    '''L'IA fait bouger les blocs de façon aléatoire au début'''
+    game_value.score = 0
+    clock = pygame.time.Clock()
+    tiles = generate_titles()
+    i = 0  
+    while i < len(individu):  # Continue jusqu'à ce que tous les mouvements soient joués
+        move = individu[i]
+        print(f"Move: {move}, Score: {game_value.score}")
+
+        if move == "left":
+            reponse = move_tiles(window, tiles, clock, "left", game_value)
+        elif move == "right":
+            reponse = move_tiles(window, tiles, clock, "right", game_value)
+        elif move == "up":
+            reponse = move_tiles(window, tiles, clock, "up", game_value)
+        elif move == "down":
+            reponse = move_tiles(window, tiles, clock, "down", game_value)
+
+        draw(window, tiles, game_value)
+
+        if reponse == "lost":
+            print(f"Lost at move: {move}, Final Score: {game_value.score}")
+            return game_value.score  # Retourner le score final si le jeu est perdu
+
+        i += 1  
+
+    return game_value.score  # Retourner le score final sauf si perdu
+
+
+def eval_pop(population, game_value, window):
+    scores = []
+    for individu in population:
+        score = play_individu(individu, game_value,window)
+        scores.append(score)
+    return scores
+
+
+def selection(population, scores, num_parents):
+    """meilleurs individus selon leurs scores."""
+    sorted_population = [individu for _, individu in sorted(zip(scores, population), reverse=True)]
+    return sorted_population[:num_parents]
+
+def crossover(parents, population_size):
+    """nouvelle génération en combinant deux parents."""
+    new_population = []
+    while len(new_population) < population_size:
+        parent1 = random.choice(parents)
+        parent2 = random.choice(parents)
+        crossover_point = random.randint(0, len(parent1) - 1)
+        child = parent1[:crossover_point] + parent2[crossover_point:]
+        new_population.append(child)
+    return new_population
+
+
+def mutate(population, mutation_rate):
+    """ Un truc en plus aléatoire"""
+    for i in range(len(population)):
+        if random.random() < mutation_rate:
+            mutation_point = random.randint(0, len(population[i]) - 1)
+            population[i][mutation_point] = random.choice(["up", "down", "left", "right"])
+    return population
+
+
+def algorithme_genetique(game_value, window, generations=50, population_size=100, mutation_rate=0.1, num_parents=10, resume_from_saved=True):
+    """Algorithme génétique pour entraîner l'IA."""
+    
+    if resume_from_saved:
+        population, starting_generation = load_pop("pop.json")
+        if not population:
+            population = generate_population(population_size)  
+        generation = starting_generation
+    else:
+        population = generate_population(population_size)
+        generation = 0
+
+    for generation in range(generation, generations):
+        print(f"=== Génération {generation + 1} ===")
+        
+        scores = eval_pop(population, game_value, window)
+        print(f"Meilleur score de cette génération : {max(scores)}")
+        
+        # Sélection des meilleurs individus 
+        parents = selection(population, scores, num_parents)
+        
+        # Croisement 
+        population = crossover(parents, population_size)
+        
+        # mutation
+        population = mutate(population, mutation_rate)
+
+        # Sauvegarde de la population 
+        save_pop(population, generation + 1)
+
+    
+
+
+
+
+
+
+def start_training():
+    game_value = Game_value()
+    algorithme_genetique(game_value, WINDOW)
+
 
 
 def start_game(game_value):
@@ -383,6 +493,7 @@ def start_game(game_value):
     Returns:
         tuple: The result of the gadme function (e.g., game state and score).
     """
+
     return game(WINDOW,game_value)
 
 def testmontecarlo(window, tiles, clock, game_value):
@@ -440,3 +551,17 @@ def testmontecarlo(window, tiles, clock, game_value):
             best_direction = direction
 
     return best_direction
+
+    choice = input("Jouer manuellement (1) ou Entraîner l'IA (2) ? ")
+
+    if choice == "1":
+        return game(WINDOW, game_value)  
+    elif choice == "2":
+        print("Lancement de l'entrainement")
+        start_training()
+        return None  
+    else:
+        print("Choix invalide.")
+        return None
+
+
